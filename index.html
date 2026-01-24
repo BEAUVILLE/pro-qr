@@ -118,6 +118,16 @@
       background:rgba(255,255,255,.03);
     }
     .qrBox{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .qrLink{
+      display:inline-block;
+      border-radius:14px;
+      overflow:hidden;
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .qrLink:hover{
+      transform:scale(1.03);
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+    }
     .qrImg{
       width:110px;height:110px;
       border-radius:14px;
@@ -171,7 +181,6 @@ window.addEventListener("DOMContentLoaded", () => {
   "use strict";
   const $ = (id)=>document.getElementById(id);
 
-  // ✅ URL bases (corrige si besoin)
   const BASE = {
     hub:          "https://beauville.github.io/digiy-hub/",
     caisse:       "https://beauville.github.io/Digiy-caisse-pro/index.html",
@@ -214,7 +223,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   function buildUrl(baseUrl, slug){
-    // garde baseUrl tel quel, ajoute/écrase slug
     const u = new URL(baseUrl, location.href);
     u.searchParams.set("slug", slug);
     return u.toString();
@@ -236,7 +244,7 @@ window.addEventListener("DOMContentLoaded", () => {
     window.open(imgSrc, "_blank", "noopener");
   }
 
-  let last = []; // {key,name,url,qrSrc}
+  let last = []; // {key,name,url}
 
   function generate(){
     const slug = slugClean(elSlug.value);
@@ -274,13 +282,26 @@ window.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="link">${url}</div>
         <div class="qrBox">
-  <a class="qrLink" href="#" target="_blank" rel="noopener">
-    <img class="qrImg" alt="QR DIGIY" />
-</div>
+          <a class="qrLink" href="" target="_blank" rel="noopener">
+            <img class="qrImg" alt="QR DIGIY" />
+          </a>
+        </div>
       `;
 
-      const img = item.querySelector(".qrImg");
+      const img  = item.querySelector(".qrImg");
+      const link = item.querySelector(".qrLink");
+
       makeQrImg(img, url);
+
+      // ✅ Ferrari: clic sur le QR => ouvre l'URL module
+      link.href = url;
+
+      // ✅ ceinture-bretelles: clic direct sur l'image aussi
+      img.style.cursor = "pointer";
+      img.addEventListener("click", (e)=>{
+        e.preventDefault();
+        window.open(url, "_blank", "noopener");
+      });
 
       item.querySelector('[data-act="copy"]').addEventListener("click", async ()=>{
         await copy(url);
@@ -292,11 +313,11 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       grid.appendChild(item);
-      last.push({ key:m.key, name:m.name, url, qrSrc: img.src });
+      last.push({ key:m.key, name:m.name, url });
     }
 
     btnCopyAll.disabled = false;
-    showNote("✅ OK. Clique “QR / PNG” pour ouvrir le QR en grand et l’enregistrer.");
+    showNote("✅ OK. Clique sur le QR pour ouvrir le module. “QR / PNG” = image en grand.");
   }
 
   btnGen.addEventListener("click", (e)=>{ e.preventDefault(); generate(); });
@@ -310,7 +331,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   btnZip.addEventListener("click", (e)=>{
     e.preventDefault();
-    showNote("ℹ️ ZIP auto: on l’active plus tard en mode QR local (réseau OK). Pour l’instant: “QR / PNG” → enregistrer.");
+    showNote("ℹ️ ZIP auto: on l’active plus tard en mode QR local. Pour l’instant: “QR / PNG” → enregistrer.");
   });
 
   // Auto ?slug=
@@ -326,7 +347,7 @@ window.addEventListener("DOMContentLoaded", () => {
     showNote("Astuce: ouvre avec ?slug=chez-astou-saly pour générer direct.");
   }
 
-  console.log("✅ DIGIY QR FACTORY READY (SAFE IMG MODE)");
+  console.log("✅ DIGIY QR FACTORY READY (CLICKABLE QR OK)");
 });
 </script>
 
