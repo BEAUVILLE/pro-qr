@@ -227,20 +227,22 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    await window.QRCode.toCanvas(canvas, url, {
-      width: size,
-      margin: 1,
-      errorCorrectionLevel: "M"
-    });
+   async function makeQr(canvas, url){
+  const size = 220;
 
-    // bandeau DIGIY
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "rgba(2,6,23,.86)";
-    ctx.fillRect(0, size - 34, size, 34);
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 14px system-ui,-apple-system,Segoe UI,Roboto";
-    ctx.fillText("DIGIY", 12, size - 12);
-  }
+  await window.QRCode.toCanvas(canvas, url, {
+    width: size,
+    margin: 1,
+    errorCorrectionLevel: "M"
+  });
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "rgba(2,6,23,.86)";
+  ctx.fillRect(0, size - 34, size, 34);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 14px system-ui";
+  ctx.fillText("DIGIY", 12, size - 12);
+}
 
   function downloadPng(canvas, filename){
     const a = document.createElement("a");
