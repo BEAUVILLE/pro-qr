@@ -208,10 +208,10 @@ window.addEventListener("DOMContentLoaded", () => {
     return u.toString();
   }
 
-  async function makeQr(canvas, url){
-    const size = 220;
-    canvas.width = size;
-    canvas.height = size;
+  async function makeQrImg(imgEl, url){
+  const size = 220;
+  imgEl.src = "https://api.qrserver.com/v1/create-qr-code/?size=" + size + "x" + size + "&data=" + encodeURIComponent(url);
+}
 
     // Si la lib n'est pas chargée, on ne bloque pas la page
     if(!window.QRCode || !window.QRCode.toCanvas){
@@ -302,16 +302,18 @@ window.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
         <div class="link">${url}</div>
-        <div class="qrBox"><canvas></canvas></div>
+<div class="qrBox">
+  <img class="qrImg" alt="QR DIGIY" />
+</div>
       `;
 
-      const canvas = item.querySelector("canvas");
-      await makeQr(canvas, url);
+      const img = item.querySelector(".qrImg");
+makeQrImg(img, url);
 
-      item.querySelector('[data-act="copy"]').addEventListener("click", async ()=>{
-        await copy(url);
-        showNote("✅ Lien copié : " + m.name);
-      });
+
+      item.querySelector('[data-act="png"]').addEventListener("click", ()=>{
+  window.open(img.src, "_blank", "noopener");
+});
       item.querySelector('[data-act="png"]').addEventListener("click", ()=>{
         downloadPng(canvas, `DIGIY_${m.key}_${slug}.png`);
       });
