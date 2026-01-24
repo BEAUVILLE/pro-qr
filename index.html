@@ -117,10 +117,7 @@
     .tag{color:var(--muted);font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
     .link{margin-top:8px;font-size:12px;color:#e5e7eb;word-break:break-all;opacity:.9}
     .qrBox{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    canvas{
-      width:110px;height:110px;
-      border-radius:14px;background:#fff;padding:10px;
-    }
+    canvas{width:110px;height:110px;border-radius:14px;background:#fff;padding:10px}
     .miniBtns{display:flex;gap:8px;flex-wrap:wrap}
     .mini{
       padding:8px 10px;border-radius:12px;
@@ -160,8 +157,9 @@
   </div>
 
 <script>
-(function(){
+window.addEventListener("DOMContentLoaded", () => {
   "use strict";
+
   const $ = (id)=>document.getElementById(id);
 
   // ✅ Mets ici tes URL bases
@@ -189,42 +187,60 @@
     { key:"ndimbalMap",   name:"NDIMBAL MAP",      tag:"CARTE" }
   ];
 
+  const elSlug = $("slug");
+  const btnGen = $("btnGen");
+  const btnCopyAll = $("btnCopyAll");
+  const btnZip = $("btnZip");
+  const grid = $("grid");
+  const pill = $("pill");
+  const note = $("note");
+
   function showNote(msg){
-    const n = $("note");
-    n.textContent = msg || "";
-    n.classList.toggle("show", !!msg);
+    note.textContent = msg || "";
+    note.classList.toggle("show", !!msg);
   }
   function slugClean(v){
     return (v||"").trim().toLowerCase().replace(/\s+/g,"-").replace(/\/+$/,"");
   }
-
-  function buildUrl(baseUrl, slug, key){
+  function buildUrl(baseUrl, slug){
     const u = new URL(baseUrl, location.href);
     u.searchParams.set("slug", slug);
     return u.toString();
   }
 
   async function makeQr(canvas, url){
-  const size = 220;
-  canvas.width = size;
-  canvas.height = size;
+    const size = 220;
+    canvas.width = size;
+    canvas.height = size;
 
-  // ✅ QR local (canvas propre, export OK)
-  await window.QRCode.toCanvas(canvas, url, {
-    width: size,
-    margin: 1,
-    errorCorrectionLevel: "M"
-  });
+    // Si la lib n'est pas chargée, on ne bloque pas la page
+    if(!window.QRCode || !window.QRCode.toCanvas){
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0,0,size,size);
+      ctx.fillStyle = "#111827";
+      ctx.font = "bold 14px system-ui,-apple-system,Segoe UI,Roboto";
+      ctx.fillText("QR LIB", 12, 30);
+      ctx.fillText("NON CHARGÉE", 12, 52);
+      ctx.font = "12px system-ui,-apple-system,Segoe UI,Roboto";
+      ctx.fillText("Copie le lien", 12, 82);
+      return;
+    }
 
-  // ✅ petit bandeau DIGIY
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "rgba(2,6,23,.86)";
-  ctx.fillRect(0, size - 34, size, 34);
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 14px system-ui,-apple-system,Segoe UI,Roboto";
-  ctx.fillText("DIGIY", 12, size - 12);
-}
+    await window.QRCode.toCanvas(canvas, url, {
+      width: size,
+      margin: 1,
+      errorCorrectionLevel: "M"
+    });
 
+    // bandeau DIGIY
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "rgba(2,6,23,.86)";
+    ctx.fillRect(0, size - 34, size, 34);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px system-ui,-apple-system,Segoe UI,Roboto";
+    ctx.fillText("DIGIY", 12, size - 12);
+  }
 
   function downloadPng(canvas, filename){
     const a = document.createElement("a");
@@ -249,27 +265,28 @@
     return true;
   }
 
-  let last = []; // {key,name,url,canvas}
+  let last = [];
+
   async function generate(){
-    const slug = slugClean($("slug").value);
-    $("pill").textContent = "Slug : " + (slug || "—");
-    $("grid").innerHTML = "";
+    const slug = slugClean(elSlug.value);
+    pill.textContent = "Slug : " + (slug || "—");
+    grid.innerHTML = "";
     last = [];
-    $("btnCopyAll").disabled = true;
-    $("btnZip").disabled = true;
+    btnCopyAll.disabled = true;
+    btnZip.disabled = true;
 
     if(!slug){
       showNote("⚠️ Entre un slug (ex: chez-astou-saly).");
       return;
     }
 
-    showNote("⏳ Génération des QR (local)…");
+    showNote("⏳ Génération…");
 
     for(const m of MODULES){
       const baseUrl = BASE[m.key];
       if(!baseUrl) continue;
 
-      const url = buildUrl(baseUrl, slug, m.key);
+      const url = buildUrl(baseUrl, slug);
 
       const item = document.createElement("div");
       item.className = "item";
@@ -285,9 +302,7 @@
           </div>
         </div>
         <div class="link">${url}</div>
-        <div class="qrBox">
-          <canvas></canvas>
-        </div>
+        <div class="qrBox"><canvas></canvas></div>
       `;
 
       const canvas = item.querySelector("canvas");
@@ -297,74 +312,80 @@
         await copy(url);
         showNote("✅ Lien copié : " + m.name);
       });
-
       item.querySelector('[data-act="png"]').addEventListener("click", ()=>{
         downloadPng(canvas, `DIGIY_${m.key}_${slug}.png`);
       });
 
-      $("grid").appendChild(item);
+      grid.appendChild(item);
       last.push({ key:m.key, name:m.name, url, canvas });
     }
 
-    $("btnCopyAll").disabled = false;
-    $("btnZip").disabled = false;
-    showNote("✅ OK. QR générés localement. Export PNG/ZIP stable.");
+    btnCopyAll.disabled = false;
+    btnZip.disabled = false;
+
+    if(!window.QRCode || !window.QRCode.toCanvas){
+      showNote("⚠️ QRCode CDN non chargé (réseau). Les liens sont OK. Recharge ou change réseau, puis régénère.");
+    } else {
+      showNote("✅ OK. QR générés + export PNG/ZIP prêt.");
+    }
   }
 
-  $("btnGen").addEventListener("click", generate);
-  $("slug").addEventListener("keydown", (e)=>{ if(e.key==="Enter") generate(); });
+  btnGen.addEventListener("click", (e)=>{ e.preventDefault(); generate(); });
+  elSlug.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); generate(); }});
 
-  $("btnCopyAll").addEventListener("click", async ()=>{
+  btnCopyAll.addEventListener("click", async ()=>{
     const txt = last.map(x=>`${x.name} — ${x.url}`).join("\n");
     await copy(txt);
     showNote("✅ Tous les liens copiés.");
   });
 
-  $("btnZip").addEventListener("click", async ()=>{
+  btnZip.addEventListener("click", async ()=>{
     if(!last.length) return;
-    $("btnZip").disabled = true;
+    btnZip.disabled = true;
     showNote("⏳ ZIP en cours…");
 
     try{
       await ensureZipLib();
       const zip = new window.JSZip();
-
       for(const x of last){
         const dataUrl = x.canvas.toDataURL("image/png");
         const base64 = dataUrl.split(",")[1];
         zip.file(`DIGIY_${x.key}.png`, base64, {base64:true});
       }
-
       const blob = await zip.generateAsync({type:"blob"});
       const a = document.createElement("a");
-      a.download = `DIGIY_QR_${slugClean($("slug").value)}.zip`;
+      a.download = `DIGIY_QR_${slugClean(elSlug.value)}.zip`;
       a.href = URL.createObjectURL(blob);
       a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
-
       showNote("✅ ZIP téléchargé.");
     }catch(err){
       console.error(err);
       showNote("❌ ZIP impossible (CDN). Télécharge chaque PNG individuellement.");
     }finally{
-      $("btnZip").disabled = false;
+      btnZip.disabled = false;
     }
   });
 
-  // Auto depuis URL ?slug=
+  // Auto ?slug=
   try{
     const s = new URL(location.href).searchParams.get("slug");
     if(s){
-      $("slug").value = s;
+      elSlug.value = s;
       generate();
-    }else{
+    } else {
       showNote("Astuce: ouvre avec ?slug=chez-astou-saly pour générer direct.");
     }
   }catch{
     showNote("Astuce: ouvre avec ?slug=chez-astou-saly pour générer direct.");
   }
 
-})();
+  // petit log debug
+  console.log("✅ DIGIY QR FACTORY READY", {
+    hasQRCode: !!window.QRCode,
+    hasToCanvas: !!(window.QRCode && window.QRCode.toCanvas)
+  });
+});
 </script>
 </body>
 </html>
